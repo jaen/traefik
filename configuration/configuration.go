@@ -379,7 +379,10 @@ func (gc *GlobalConfiguration) initACMEProvider() {
 
 		if len(gc.ACME.DNSProvider) > 0 {
 			log.Warn("ACME.DNSProvider is deprecated, use ACME.DNSChallenge instead")
-			gc.ACME.DNSChallenge = &acmeprovider.DNSChallenge{Provider: gc.ACME.DNSProvider, DelayBeforeCheck: gc.ACME.DelayDontCheckDNS}
+			gc.ACME.DNSChallenge = &acmeprovider.DNSChallenge{
+				Provider:         gc.ACME.DNSProvider,
+				DelayBeforeCheck: gc.ACME.DelayDontCheckDNS,
+			}
 		}
 
 		if gc.ACME.OnDemand {

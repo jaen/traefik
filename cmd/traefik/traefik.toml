@@ -1,0 +1,47 @@
+debug = true
+
+logLevel = "DEBUG"
+defaultEntryPoints = ["https","http"]
+
+[entryPoints]
+  [entryPoints.http]
+  address = ":8123"
+    [entryPoints.http.redirect]
+    entryPoint = "https"
+  [entryPoints.https]
+  address = ":4434"
+  [entryPoints.https.tls]
+
+[retry]
+
+[api]
+dashboard = true
+
+[docker]
+endpoint = "unix:///var/run/docker.sock"
+watch = true
+# domain = "eigen.co"
+exposedByDefault = false
+
+[acme]
+email = "devteam@eigen.co"
+storage = "/home/jaen/Projects/work/acme.json"
+entryPoint = "https"
+onHostRule = false
+acmeLogging = true
+
+[acme.dnsChallenge]
+provider = "cloudflare"
+delayBeforeCheck = 60
+dnsResolvers = [
+  "8.8.8.8"
+]
+
+[[acme.domains]]
+  main = "registry.eigen.co"
+  sans = ["registry.int.eigen.co"]
+
+[[acme.domains]]
+  main = "coderepo.eigen.co"
+  sans = ["coderepo.int.eigen.co"]
+

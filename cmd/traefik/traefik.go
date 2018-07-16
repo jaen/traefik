@@ -25,6 +25,7 @@ import (
 	"github.com/containous/traefik/configuration/router"
 	"github.com/containous/traefik/job"
 	"github.com/containous/traefik/log"
+	"github.com/containous/traefik/provider/acme"
 	"github.com/containous/traefik/provider/ecs"
 	"github.com/containous/traefik/provider/kubernetes"
 	"github.com/containous/traefik/safe"
@@ -66,6 +67,7 @@ Complete documentation is available at https://traefik.io`,
 	// add custom parsers
 	f.AddParser(reflect.TypeOf(configuration.EntryPoints{}), &configuration.EntryPoints{})
 	f.AddParser(reflect.TypeOf(configuration.DefaultEntryPoints{}), &configuration.DefaultEntryPoints{})
+	f.AddParser(reflect.TypeOf(acme.DNSResolvers{}), &acme.DNSResolvers{})
 	f.AddParser(reflect.TypeOf(traefiktls.RootCAs{}), &traefiktls.RootCAs{})
 	f.AddParser(reflect.TypeOf(types.Constraints{}), &types.Constraints{})
 	f.AddParser(reflect.TypeOf(kubernetes.Namespaces{}), &kubernetes.Namespaces{})

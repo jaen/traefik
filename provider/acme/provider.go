@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	fmtlog "log"
+	"net"
 	"reflect"
 	"strings"
 	"sync"
@@ -69,9 +70,48 @@ type Certificate struct {
 	Key         []byte
 }
 
+// DNSResolvers is a list of DNSes that we will try to resolve the challenged FQDN against
+type DNSResolvers []string
+
+// String is the method to format the flag's value, part of the flag.Value interface.
+// The String method's output will be used in diagnostics.
+func (dep *DNSResolvers) String() string {
+	return strings.Join(*dep, ",")
+}
+
+// Set is the method to set the flag value, part of the flag.Value interface.
+// Set's argument is a string to be parsed to set the flag.
+// It's a comma-separated list, so we split it.
+func (dep *DNSResolvers) Set(value string) error {
+	entrypoints := strings.Split(value, ",")
+	if len(entrypoints) == 0 {
+		return fmt.Errorf("bad DNSResolvers format: %s", value)
+	}
+	for _, entrypoint := range entrypoints {
+		*dep = append(*dep, entrypoint)
+	}
+	return nil
+}
+
+// Get return the DNSResolvers list
+func (dep *DNSResolvers) Get() interface{} {
+	return *dep
+}
+
+// SetValue sets the DNSResolvers list
+func (dep *DNSResolvers) SetValue(val interface{}) {
+	*dep = val.(DNSResolvers)
+}
+
+// Type is type of the struct
+func (dep *DNSResolvers) Type() string {
+	return "dnsresolvers"
+}
+
 // DNSChallenge contains DNS challenge Configuration
 type DNSChallenge struct {
 	Provider         string         `description:"Use a DNS-01 based challenge provider rather than HTTPS."`
+	DNSResolvers     DNSResolvers   `description:"Use following DNS servers to resolve the FQDN authority."`
 	DelayBeforeCheck flaeg.Duration `description:"Assume DNS propagates after a delay in seconds rather than finding and querying nameservers."`
 }
 
@@ -237,6 +277,11 @@ func (p *Provider) getClient() (*acme.Client, error) {
 			return nil, err
 		}
 
+		err = dnsOverrideDNSResolvers(p.DNSChallenge.DNSResolvers)
+		if err != nil {
+			return nil, err
+		}
+
 		var provider acme.ChallengeProvider
 		provider, err = dns.NewDNSChallengeProviderByName(p.DNSChallenge.Provider)
 		if err != nil {
@@ -386,6 +431,34 @@ func dnsOverrideDelay(delay flaeg.Duration) error {
 	} else {
 		return fmt.Errorf("delayBeforeCheck: %d cannot be less than 0", delay)
 	}
+	return nil
+}
+
+func normaliseDNSResolvers(dnsResolvers []string) []string {
+	normalisedResolvers := []string{}
+	for _, server := range dnsResolvers {
+		// ensure all servers have a port number
+		if _, _, err := net.SplitHostPort(server); err != nil {
+			normalisedResolvers = append(normalisedResolvers, net.JoinHostPort(server, "53"))
+		} else {
+			normalisedResolvers = append(normalisedResolvers, server)
+		}
+	}
+
+	return normalisedResolvers
+}
+
+func dnsOverrideDNSResolvers(dnsResolvers []string) error {
+	if len(dnsResolvers) == 0 {
+		return nil
+	}
+
+	dnsResolvers = normaliseDNSResolvers(dnsResolvers)
+
+	log.Infof("Validating FQDN authority with DNS using %+v", dnsResolvers)
+
+	acme.RecursiveNameservers = dnsResolvers
+
 	return nil
 }
 
